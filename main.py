@@ -86,11 +86,51 @@ class KanbanApp(tk.Tk):
         self.task_list_frame = tk.Frame(self.todo_canvas, bg="#292D36")
         self.todo_canvas.create_window((0, 0), window=self.task_list_frame, anchor="nw")
 
-        self.task_list_frame.bind("<Configure>", self._on_frame_configure)
+        self.task_list_frame.bind("<Configure>", self._on_todo_configure)
 
+        
+
+        # === Doing canvas ===
+        self.doing_canvas = tk.Canvas(
+            self, bg="#292D36", width=245, height=480,
+            highlightthickness=0
+        )
+        self.doing_canvas.place(x=475, y=160)
+
+        self.doing_scrollbar = ttk.Scrollbar(
+            self, orient="vertical",
+            command=self.doing_canvas.yview,
+            style="Custom.Vertical.TScrollbar"
+        )
+        self.doing_canvas.configure(yscrollcommand=self.doing_scrollbar.set)
+
+        self.doing_task_list_frame = tk.Frame(self.doing_canvas, bg="#292D36")
+        self.doing_canvas.create_window((0, 0), window=self.doing_task_list_frame, anchor="nw")
+
+        self.doing_task_list_frame.bind("<Configure>", self._on_doing_frame_configure)
+
+        # === Done canvas ===
+        self.done_canvas = tk.Canvas(
+            self, bg="#292D36", width=245, height=480,
+            highlightthickness=0
+        )
+        self.done_canvas.place(x=855, y=160)
+
+        self.done_scrollbar = ttk.Scrollbar(
+            self, orient="vertical",
+            command=self.done_canvas.yview,
+            style="Custom.Vertical.TScrollbar"
+        )
+        self.done_canvas.configure(yscrollcommand=self.done_scrollbar.set)
+
+        self.done_task_list_frame = tk.Frame(self.done_canvas, bg="#292D36")
+        self.done_canvas.create_window((0, 0), window=self.done_task_list_frame, anchor="nw")
+
+        self.done_task_list_frame.bind("<Configure>", self._on_done_frame_configure)
 
         # Initial scrollbar visibility
         self._update_scrollbar_visibility()
+
 
 
     def add_task(self):
@@ -103,38 +143,68 @@ class KanbanApp(tk.Tk):
 
         self.todo_tasks.append(task)
         task.render() 
-        print(self.todo_tasks)
+        
         self.task_entry.delete(0, tk.END)
         self.todo_canvas.update_idletasks()
         self._update_scrollbar_visibility()
 
+    def _on_doing_frame_configure(self, event=None):    
+        self.doing_canvas.configure(scrollregion=self.doing_canvas.bbox("all"))
+        self._update_scrollbar_visibility()
 
-    def _on_frame_configure(self, event=None):
+
+    def _on_done_frame_configure(self, event=None):
+        self.done_canvas.configure(scrollregion=self.done_canvas.bbox("all"))
+        self._update_scrollbar_visibility()
+
+
+    def _on_todo_configure(self, event=None):
         self.todo_canvas.configure(scrollregion=self.todo_canvas.bbox("all"))
         self._update_scrollbar_visibility()
 
     def _update_scrollbar_visibility(self, event=None):
-        canvas_height = self.todo_canvas.winfo_height()
-        bbox = self.todo_canvas.bbox("all")
-        content_height = bbox[3] if bbox else 0
+        # To-Do
+        todo_height = self.todo_canvas.winfo_height()
+        todo_bbox = self.todo_canvas.bbox("all")
+        todo_content = todo_bbox[3] if todo_bbox else 0
 
-        if content_height <= canvas_height:
+        if todo_content <= todo_height:
             self.scrollbar.place_forget()
         else:
-            self.scrollbar.place(x=335, y=180, height=375)
+            self.scrollbar.place(x=350, y=180, height=375)
+
+        # Doing
+        doing_height = self.doing_canvas.winfo_height()
+        doing_bbox = self.doing_canvas.bbox("all")
+        doing_content = doing_bbox[3] if doing_bbox else 0
+
+        if doing_content <= doing_height:
+            self.doing_scrollbar.place_forget()
+        else:
+            self.doing_scrollbar.place(x=725, y=180, height=420)
+
+        # Done
+        done_height = self.done_canvas.winfo_height()
+        done_bbox = self.done_canvas.bbox("all")
+        done_content = done_bbox[3] if done_bbox else 0
+
+        if done_content <= done_height:
+            self.done_scrollbar.place_forget()
+        else:
+            self.done_scrollbar.place(x=1105, y=180, height=420)
 
     def move_task(self, task, todo, doing, done):
         if task in todo:
-            print("in todo")
             todo.remove(task)
             doing.append(task)
             task.current_list = "doing"
-            task.move_to(self.doing_frame)
+            task.move_to(self.doing_task_list_frame)
+
         elif task in doing:
             doing.remove(task)
             done.append(task)
             task.current_list = "done"
-            task.move_to(self.done_frame)
+            task.move_to(self.done_task_list_frame)
 
 if __name__ == "__main__":
     app = KanbanApp()

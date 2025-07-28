@@ -74,6 +74,11 @@ class Task():
 
 
     def move_to(self, new_parent):
-        self.frame.pack_forget()
-        self.frame.master = new_parent
-        self.frame.pack(...)
+        # Destroy the old frame
+        self.frame.destroy()
+
+        # Update the parent frame reference
+        self.parent_frame = new_parent
+
+        # Re-render the task in the new parent
+        self.render()
