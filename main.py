@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 from pathlib import Path
+from task import Task 
+from utils import relative_to_assets
+
 
 class KanbanApp(tk.Tk):
     def __init__(self):
@@ -10,14 +13,14 @@ class KanbanApp(tk.Tk):
         self.configure(bg="#292D36")
         self.resizable(False, False)
 
-        self.assets_path = Path(__file__).parent / "assets" / "frame0"
+        self.todo_tasks = []
+        self.doing_tasks = []
+        self.done_tasks = []
 
         self._setup_style()
         self._create_widgets()
 
 
-    def _relative_to_assets(self, filename):
-        return self.assets_path / filename
 
     def _setup_style(self):
         style = ttk.Style(self)
@@ -42,11 +45,11 @@ class KanbanApp(tk.Tk):
         )
         self.canvas.place(x=0, y=0)
 
-        self.image_1 = tk.PhotoImage(file=self._relative_to_assets("image_1.png"))
+        self.image_1 = tk.PhotoImage(file=relative_to_assets("image_1.png"))
         self.canvas.create_image(600, 375, image=self.image_1)
 
         # Entry field background image
-        self.entry_bg_image = tk.PhotoImage(file=self._relative_to_assets("entry_1.png"))
+        self.entry_bg_image = tk.PhotoImage(file=relative_to_assets("entry_1.png"))
         self.canvas.create_image(220, 644, image=self.entry_bg_image)
 
         # Task entry widget
@@ -57,7 +60,7 @@ class KanbanApp(tk.Tk):
         self.task_entry.place(x=125, y=631, width=170, height=27)
 
         # Add task button
-        self.add_button_image = tk.PhotoImage(file=self._relative_to_assets("button_1.png"))
+        self.add_button_image = tk.PhotoImage(file=relative_to_assets("button_1.png"))
         self.add_button = tk.Button(
             self, image=self.add_button_image,
             borderwidth=0, highlightthickness=0,
@@ -65,6 +68,7 @@ class KanbanApp(tk.Tk):
         )
         self.add_button.place(x=300, y=630, width=26, height=26)
 
+        # === To Do canvas ===
         # Scrollable task list area
         self.todo_canvas = tk.Canvas(
             self, bg="#292D36", width=245, height=425,
@@ -84,29 +88,26 @@ class KanbanApp(tk.Tk):
 
         self.task_list_frame.bind("<Configure>", self._on_frame_configure)
 
+
         # Initial scrollbar visibility
         self._update_scrollbar_visibility()
+
 
     def add_task(self):
         task_text = self.task_entry.get().strip()
         if not task_text:
             return
-        task_label = tk.Label(
-            self.task_list_frame,
-            text=task_text,
-            bg="#292D36",
-            fg="white",
-            padx=5,
-            pady=5,
-            anchor="w",
-            font=("Inter", 12),
-            justify="left",
-            wraplength=200
-        )
-        task_label.pack(fill="x", pady=2)
+
+        task = Task(self.task_list_frame, text=task_text)
+        task.move_callback = lambda t=task: self.move_task(t, self.todo_tasks, self.doing_tasks, self.done_tasks)
+
+        self.todo_tasks.append(task)
+        task.render() 
+        print(self.todo_tasks)
         self.task_entry.delete(0, tk.END)
         self.todo_canvas.update_idletasks()
         self._update_scrollbar_visibility()
+
 
     def _on_frame_configure(self, event=None):
         self.todo_canvas.configure(scrollregion=self.todo_canvas.bbox("all"))
@@ -121,6 +122,19 @@ class KanbanApp(tk.Tk):
             self.scrollbar.place_forget()
         else:
             self.scrollbar.place(x=335, y=180, height=375)
+
+    def move_task(self, task, todo, doing, done):
+        if task in todo:
+            print("in todo")
+            todo.remove(task)
+            doing.append(task)
+            task.current_list = "doing"
+            task.move_to(self.doing_frame)
+        elif task in doing:
+            doing.remove(task)
+            done.append(task)
+            task.current_list = "done"
+            task.move_to(self.done_frame)
 
 if __name__ == "__main__":
     app = KanbanApp()
