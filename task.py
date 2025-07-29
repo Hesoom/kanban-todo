@@ -24,10 +24,10 @@ class Task():
             padx=5,
             pady=5,
             anchor="w",
-            font=("Inter", 12),
+            font=("Inter", 13, 'bold'),
             justify="left",
-            wraplength=160,
-            width=19
+            wraplength=170,
+            width=17
         )
         self.label.pack(side="left", fill="x", expand=True)
 
@@ -56,6 +56,10 @@ class Task():
         )
         self.delete_btn.pack(side='right')
 
+        if status == 'doing':
+            self.label.config(fg="#FFD988")
+        elif status == 'done':
+            self.label.config(fg="#88FF88")
 
     def delete(self):
         self.frame.destroy()
@@ -70,6 +74,6 @@ class Task():
 
         # Update the parent frame reference
         self.parent_frame = new_parent
-
         # Re-render the task in the new parent
+
         self.render(self.status)

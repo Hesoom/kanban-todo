@@ -58,18 +58,15 @@ class KanbanApp(tk.Tk):
                 task_list_frame = getattr(self, f"{task_status}_task_list_frame")
                 task = Task(task_list_frame, text=task_text,id=task_id)
                 task.move_callback = lambda t=task: self.move_task(t, self.todo_tasks, self.doing_tasks, self.done_tasks)
-                
+                task.delete_callback = lambda t=task: self.delete_task(t, self.todo_tasks, self.doing_tasks, self.done_tasks)
                 if task_status == "todo":
-                    task.delete_callback = lambda t=task: self.delete_task(t, self.todo_tasks)
                     self.todo_tasks.append(task)
                 elif task_status == "doing":
-                    task.delete_callback = lambda t=task: self.delete_task(t, self.doing_tasks)
                     self.doing_tasks.append(task)
                 elif task_status == "done":
-                    task.delete_callback = lambda t=task: self.delete_task(t, self.done_tasks)
                     self.done_tasks.append(task)
 
-                task.render(status=task.status)
+                task.render(status=task_status)
 
 
     def _create_widgets(self):
@@ -181,7 +178,8 @@ class KanbanApp(tk.Tk):
 
         task = Task(self.todo_task_list_frame, text=task_text)
         task.move_callback = lambda t=task: self.move_task(t, self.todo_tasks, self.doing_tasks, self.done_tasks)
-        task.delete_callback = lambda t=task: self.delete_task(t, self.todo_tasks)
+
+        task.delete_callback = lambda t=task: self.delete_task(t, self.todo_tasks, self.doing_tasks, self.done_tasks)
 
         task.render(status=task.status)
         self.todo_tasks.append(task)
@@ -239,23 +237,34 @@ class KanbanApp(tk.Tk):
         if task in todo:
             todo.remove(task)
             doing.append(task)
-            task.current_list = "doing"
+            task.status = "doing"
             with conn:
                 c.execute("UPDATE tasks SET status = (?) WHERE id = (?)",("doing",task.id))
             task.move_to(self.doing_task_list_frame)
+            # task.label.config(fg="#FFD988")
 
         elif task in doing:
             doing.remove(task)
             done.append(task)
-            task.current_list = "done"
+            task.status = "done"
             with conn:
                 c.execute("UPDATE tasks SET status = (?) WHERE id = (?)",("done",task.id))
             task.move_to(self.done_task_list_frame)
+            # task.label.config(fg="#8CFF88")
 
-    def delete_task(self,task,status_list):        
-        status_list.remove(task)
-        with conn:
-            c.execute("DELETE FROM tasks WHERE id = (?)",(task.id,))
+    def delete_task(self, task, todo, doing, done):
+        if task in todo:
+            todo.remove(task)
+            with conn:
+                c.execute("DELETE FROM tasks WHERE id = (?)",(task.id,))
+        if task in doing:
+            doing.remove(task)
+            with conn:
+                c.execute("DELETE FROM tasks WHERE id = (?)",(task.id,))
+        if task in done:
+            done.remove(task)
+            with conn:
+                c.execute("DELETE FROM tasks WHERE id = (?)",(task.id,))
 
 
 
