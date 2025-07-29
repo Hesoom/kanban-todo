@@ -100,6 +100,8 @@ class KanbanApp(tk.Tk):
         )
         self.add_button.place(x=300, y=630, width=26, height=26)
 
+        self.task_entry.bind("<Return>", lambda e: self.add_task())
+
         # === To Do canvas ===
         # Scrollable task list area
         self.todo_canvas = tk.Canvas(
@@ -178,7 +180,6 @@ class KanbanApp(tk.Tk):
 
         task = Task(self.todo_task_list_frame, text=task_text)
         task.move_callback = lambda t=task: self.move_task(t, self.todo_tasks, self.doing_tasks, self.done_tasks)
-
         task.delete_callback = lambda t=task: self.delete_task(t, self.todo_tasks, self.doing_tasks, self.done_tasks)
 
         task.render(status=task.status)
@@ -241,7 +242,6 @@ class KanbanApp(tk.Tk):
             with conn:
                 c.execute("UPDATE tasks SET status = (?) WHERE id = (?)",("doing",task.id))
             task.move_to(self.doing_task_list_frame)
-            # task.label.config(fg="#FFD988")
 
         elif task in doing:
             doing.remove(task)
@@ -250,7 +250,6 @@ class KanbanApp(tk.Tk):
             with conn:
                 c.execute("UPDATE tasks SET status = (?) WHERE id = (?)",("done",task.id))
             task.move_to(self.done_task_list_frame)
-            # task.label.config(fg="#8CFF88")
 
     def delete_task(self, task, todo, doing, done):
         if task in todo:
@@ -265,8 +264,6 @@ class KanbanApp(tk.Tk):
             done.remove(task)
             with conn:
                 c.execute("DELETE FROM tasks WHERE id = (?)",(task.id,))
-
-
 
 
 if __name__ == "__main__":
