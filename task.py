@@ -31,18 +31,19 @@ class Task():
         )
         self.label.pack(side="left", fill="x", expand=True)
 
-        self.move_btn_image = tk.PhotoImage(file=relative_to_assets("arrow_1.png"))
-        self.move_btn = tk.Button(
-            self.frame,
-            image=self.move_btn_image,
-            command=self.move,
-            borderwidth=0,
-            highlightthickness=0,
-            relief="flat",
-            activebackground=self.frame["bg"]
-        )
-        self.move_btn.pack(side='right')
-        
+        if status != 'done':
+            self.move_btn_image = tk.PhotoImage(file=relative_to_assets("arrow_1.png"))
+            self.move_btn = tk.Button(
+                self.frame,
+                image=self.move_btn_image,
+                command=self.move,
+                borderwidth=0,
+                highlightthickness=0,
+                relief="flat",
+                activebackground=self.frame["bg"]
+            )
+            self.move_btn.pack(side='right')
+            
         
         self.delete_btn_image = tk.PhotoImage(file=relative_to_assets("delete_1.png"))
         self.delete_btn = tk.Button(
@@ -59,8 +60,8 @@ class Task():
         if status == 'doing':
             self.label.config(fg="#FFD988")
         elif status == 'done':
-            self.label.config(fg="#88FF88")
-
+            self.label.config(fg="#88FF88",wraplength=190, width=20)
+            
     def delete(self):
         self.frame.destroy()
         self.delete_callback(self)
@@ -74,6 +75,6 @@ class Task():
 
         # Update the parent frame reference
         self.parent_frame = new_parent
+        
         # Re-render the task in the new parent
-
         self.render(self.status)
