@@ -3,7 +3,15 @@ from tkinter import ttk
 from pathlib import Path
 from task import Task 
 from utils import relative_to_assets
+import sqlite3
 
+conn = sqlite3.connect("task.db")
+c = conn.cursor()
+
+# c.execute("CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, text text, status text)")
+
+conn.commit()
+# conn.close()
 
 class KanbanApp(tk.Tk):
     def __init__(self):
@@ -19,7 +27,7 @@ class KanbanApp(tk.Tk):
 
         self._setup_style()
         self._create_widgets()
-
+        self.render_tasks()
 
 
     def _setup_style(self):
@@ -36,6 +44,33 @@ class KanbanApp(tk.Tk):
             arrowcolor="#161616"
         )
         self.style = style
+
+    def render_tasks(self):
+        c.execute("SELECT * FROM tasks")
+        all_tasks = c.fetchall()
+        if all_tasks:
+            for tt in all_tasks:
+                
+                task_id = tt[0]
+                task_text = tt[1]
+                task_status = tt[2]
+
+                task_list_frame = getattr(self, f"{task_status}_task_list_frame")
+                task = Task(task_list_frame, text=task_text,id=task_id)
+                task.move_callback = lambda t=task: self.move_task(t, self.todo_tasks, self.doing_tasks, self.done_tasks)
+                
+                if task_status == "todo":
+                    task.delete_callback = lambda t=task: self.delete_task(t, self.todo_tasks)
+                    self.todo_tasks.append(task)
+                elif task_status == "doing":
+                    task.delete_callback = lambda t=task: self.delete_task(t, self.doing_tasks)
+                    self.doing_tasks.append(task)
+                elif task_status == "done":
+                    task.delete_callback = lambda t=task: self.delete_task(t, self.done_tasks)
+                    self.done_tasks.append(task)
+
+                task.render(status=task.status)
+
 
     def _create_widgets(self):
         # Background canvas and image
@@ -83,10 +118,10 @@ class KanbanApp(tk.Tk):
         )
         self.todo_canvas.configure(yscrollcommand=self.scrollbar.set)
 
-        self.task_list_frame = tk.Frame(self.todo_canvas, bg="#292D36")
-        self.todo_canvas.create_window((0, 0), window=self.task_list_frame, anchor="nw")
+        self.todo_task_list_frame = tk.Frame(self.todo_canvas, bg="#292D36")
+        self.todo_canvas.create_window((0, 0), window=self.todo_task_list_frame, anchor="nw")
 
-        self.task_list_frame.bind("<Configure>", self._on_todo_configure)
+        self.todo_task_list_frame.bind("<Configure>", self._on_todo_configure)
 
         
 
@@ -131,6 +166,12 @@ class KanbanApp(tk.Tk):
         # Initial scrollbar visibility
         self._update_scrollbar_visibility()
 
+        
+
+    def insert_task(self, task):
+        with conn:
+            c.execute("INSERT INTO tasks (text, status) VALUES (?, ?)", (task.text, task.status))
+            task.id = c.lastrowid
 
 
     def add_task(self):
@@ -138,12 +179,14 @@ class KanbanApp(tk.Tk):
         if not task_text:
             return
 
-        task = Task(self.task_list_frame, text=task_text)
+        task = Task(self.todo_task_list_frame, text=task_text)
         task.move_callback = lambda t=task: self.move_task(t, self.todo_tasks, self.doing_tasks, self.done_tasks)
+        task.delete_callback = lambda t=task: self.delete_task(t, self.todo_tasks)
 
+        task.render(status=task.status)
         self.todo_tasks.append(task)
-        task.render() 
-        
+        self.insert_task(task)
+
         self.task_entry.delete(0, tk.END)
         self.todo_canvas.update_idletasks()
         self._update_scrollbar_visibility()
@@ -156,7 +199,6 @@ class KanbanApp(tk.Tk):
     def _on_done_frame_configure(self, event=None):
         self.done_canvas.configure(scrollregion=self.done_canvas.bbox("all"))
         self._update_scrollbar_visibility()
-
 
     def _on_todo_configure(self, event=None):
         self.todo_canvas.configure(scrollregion=self.todo_canvas.bbox("all"))
@@ -198,13 +240,25 @@ class KanbanApp(tk.Tk):
             todo.remove(task)
             doing.append(task)
             task.current_list = "doing"
+            with conn:
+                c.execute("UPDATE tasks SET status = (?) WHERE id = (?)",("doing",task.id))
             task.move_to(self.doing_task_list_frame)
 
         elif task in doing:
             doing.remove(task)
             done.append(task)
             task.current_list = "done"
+            with conn:
+                c.execute("UPDATE tasks SET status = (?) WHERE id = (?)",("done",task.id))
             task.move_to(self.done_task_list_frame)
+
+    def delete_task(self,task,status_list):        
+        status_list.remove(task)
+        with conn:
+            c.execute("DELETE FROM tasks WHERE id = (?)",(task.id,))
+
+
+
 
 if __name__ == "__main__":
     app = KanbanApp()

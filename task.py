@@ -3,14 +3,16 @@ from utils import relative_to_assets
 
 
 class Task():
-    def __init__(self, parent_frame, text,move_callback=None , status="todo"):
+    def __init__(self, parent_frame, text, id=None,move_callback=None, delete_callback=None , status="todo"):
         self.text = text
         self.status = status
+        self.id = id
         self.move_callback = move_callback
+        self.delete_callback = delete_callback
         self.parent_frame = parent_frame
         self.frame = None
 
-    def render(self):
+    def render(self, status):
         self.frame = tk.Frame(self.parent_frame, bg="#292D36")
         self.frame.pack(fill="x", pady=2)
 
@@ -24,8 +26,8 @@ class Task():
             anchor="w",
             font=("Inter", 12),
             justify="left",
-            wraplength=145,
-            width=16
+            wraplength=160,
+            width=19
         )
         self.label.pack(side="left", fill="x", expand=True)
 
@@ -54,24 +56,13 @@ class Task():
         )
         self.delete_btn.pack(side='right')
 
-        self.edit_btn_image = tk.PhotoImage(file=relative_to_assets("edit_1.png"))
-        self.edit_btn = tk.Button(
-            self.frame,
-            image=self.edit_btn_image,
-            borderwidth=0,
-            highlightthickness=0,
-            relief="flat",
-            activebackground=self.frame["bg"]
-        )
-        self.edit_btn.pack(side='right')
-
 
     def delete(self):
         self.frame.destroy()
+        self.delete_callback(self)
 
     def move(self):
         self.move_callback(self)
-
 
     def move_to(self, new_parent):
         # Destroy the old frame
@@ -81,4 +72,4 @@ class Task():
         self.parent_frame = new_parent
 
         # Re-render the task in the new parent
-        self.render()
+        self.render(self.status)
